@@ -14,3 +14,4 @@ Place `MET-Plugin.lua` in your YimMenu `scripts` folder:
 `C:\Users\<YourName>\AppData\Roaming\YimMenu\scripts\`
 
 
+
