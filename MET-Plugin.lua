@@ -8424,6 +8424,49 @@ Players:add_imgui(function()
     ImGui.Text("Fake Money Drop")  
     ImGui.Separator()
 
+if money_bag == nil then money_bag = false end
+if poly_bag == nil then poly_bag = false end
+if alien_egg == nil then alien_egg = false end
+if toilet_paper == nil then toilet_paper = false end
+if toilet == nil then toilet = false end
+if xmas_tree == nil then xmas_tree = false end
+
+local models_to_load = {
+    money_bag = "prop_money_bag_01",
+    poly_bag = "prop_poly_bag_01",
+    alien_egg = "prop_alien_egg_01",
+    toilet_paper = "prop_toilet_roll_01",
+    toilet = "prop_toilet_01",
+    xmas_tree = "prop_xmas_tree_int"
+}
+
+local pickup_hash = 738282662
+
+local function request_models()
+    for _, model_name in pairs(models_to_load) do
+        local hash = joaat(model_name)
+        if not STREAMING.HAS_MODEL_LOADED(hash) then
+            STREAMING.REQUEST_MODEL(hash)
+        end
+    end
+end
+
+local function load_and_spawn(enabled, prop_name, pickup_hash)
+    if enabled then
+        local modelHash = joaat(prop_name)
+        if not STREAMING.HAS_MODEL_LOADED(modelHash) then
+            STREAMING.REQUEST_MODEL(modelHash)
+            return
+        end
+        local selectedPed = PLAYER.GET_PLAYER_PED(selPlayerId)
+        local coords = ENTITY.GET_ENTITY_COORDS(selectedPed, false)
+        OBJECT.CREATE_AMBIENT_PICKUP(pickup_hash, coords.x, coords.y, coords.z + 1.5, 0, 1, modelHash, false, true)
+    end
+end
+
+request_models()
+
+local prev_money_bag = money_bag
 money_bag, changed_money_bag = ImGui.Checkbox("Money Bag", money_bag)
 if changed_money_bag then
     local msg = money_bag and "Fake Money Drop Enabled" or "Fake Money Drop Disabled"
@@ -8465,7 +8508,7 @@ if changed_toilet then
     local msg = toilet and "Fake Money Drop Enabled" or "Fake Money Drop Disabled"
     gui.show_message("MET", msg)
     AUDIO.PLAY_SOUND_FRONTEND(-1, "NAV_UP_DOWN", "HUD_FRONTEND_TATTOO_SHOP_SOUNDSET", true)
-end     
+end
 
 ImGui.SameLine()
 
@@ -8474,29 +8517,15 @@ if changed_xmas_tree then
     local msg = xmas_tree and "Fake Money Drop Enabled" or "Fake Money Drop Disabled"
     gui.show_message("MET", msg)
     AUDIO.PLAY_SOUND_FRONTEND(-1, "NAV_UP_DOWN", "HUD_FRONTEND_TATTOO_SHOP_SOUNDSET", true)
-end     
-
-local function load_and_spawn(enabled, prop_name, pickup_hash)
-    if enabled then
-        modelHash = joaat(prop_name)
-        if not STREAMING.HAS_MODEL_LOADED(modelHash) then
-            STREAMING.REQUEST_MODEL(modelHash)
-            return
-        end
-        selectedPed = PLAYER.GET_PLAYER_PED(selPlayerId)
-        coords = ENTITY.GET_ENTITY_COORDS(selectedPed, false)
-        OBJECT.CREATE_AMBIENT_PICKUP(pickup_hash, coords.x, coords.y, coords.z + 1.5, 0, 1, modelHash, false, true)
-    end
 end
-                              
-load_and_spawn(money_bag, "prop_money_bag_01", 738282662)
-load_and_spawn(poly_bag, "prop_poly_bag_01", 738282662)
-load_and_spawn(alien_egg, "prop_alien_egg_01", 738282662)
-load_and_spawn(toilet_paper, "prop_toilet_roll_01", 738282662)
-load_and_spawn(toilet, "prop_toilet_01", 738282662)
-load_and_spawn(xmas_tree, "prop_xmas_tree_int", 738282662)
 
-         
+load_and_spawn(money_bag, models_to_load.money_bag, pickup_hash)
+load_and_spawn(poly_bag, models_to_load.poly_bag, pickup_hash)
+load_and_spawn(alien_egg, models_to_load.alien_egg, pickup_hash)
+load_and_spawn(toilet_paper, models_to_load.toilet_paper, pickup_hash)
+load_and_spawn(toilet, models_to_load.toilet, pickup_hash)
+load_and_spawn(xmas_tree, models_to_load.xmas_tree, pickup_hash)
+
 ImGui.Separator()
 
 local playerProps = {
@@ -8842,84 +8871,75 @@ ImGui.PopStyleColor(2)
 end)
 
 last_spawn_time_roller_coaster = 0
-VEHICLE_SPAWN_DELAY_ROLLER_COASTER = 0.15
+VEHICLE_SPAWN_DELAY_ROLLER_COASTER = 0.05
+
+local vehicleModel_roller = MISC.GET_HASH_KEY("hakuchou")
+local propModel_roller = MISC.GET_HASH_KEY("ind_prop_dlc_roller_car")
+STREAMING.REQUEST_MODEL(vehicleModel_roller)
+STREAMING.REQUEST_MODEL(propModel_roller)
 
 Funny_Vehicles:add_button("Roller Coaster", function()
-    current_time = os.clock()
-    if current_time - last_spawn_time_roller_coaster < VEHICLE_SPAWN_DELAY_ROLLER_COASTER then
-        return
-    end
-    
+    local current_time = os.clock()
+    if current_time - last_spawn_time_roller_coaster < VEHICLE_SPAWN_DELAY_ROLLER_COASTER then return end
     last_spawn_time_roller_coaster = current_time
-    playerPed = PLAYER.PLAYER_PED_ID()
-    playerPos = ENTITY.GET_ENTITY_COORDS(playerPed, true)
-    vehicleModel = MISC.GET_HASH_KEY("hakuchou")
-    propModel = MISC.GET_HASH_KEY("ind_prop_dlc_roller_car")
-    STREAMING.REQUEST_MODEL(vehicleModel)
-    STREAMING.REQUEST_MODEL(propModel)
-    if not STREAMING.HAS_MODEL_LOADED(vehicleModel) then return end
-    if not STREAMING.HAS_MODEL_LOADED(propModel) then return end
-    heading = ENTITY.GET_ENTITY_HEADING(playerPed)
-    vehicle = VEHICLE.CREATE_VEHICLE(vehicleModel, playerPos.x + 2, playerPos.y, playerPos.z, heading, true, false)
+    local playerPed = PLAYER.PLAYER_PED_ID()
+    local playerPos = ENTITY.GET_ENTITY_COORDS(playerPed, true)
+    local heading = ENTITY.GET_ENTITY_HEADING(playerPed)
+    local vehicle = VEHICLE.CREATE_VEHICLE(vehicleModel_roller, playerPos.x + 2, playerPos.y, playerPos.z, heading, true, false)
     ENTITY.SET_ENTITY_ALPHA(vehicle, 0, false)
     ENTITY.SET_ENTITY_COLLISION(vehicle, true, true)
     PED.SET_PED_INTO_VEHICLE(playerPed, vehicle, -1)
-    prop = OBJECT.CREATE_OBJECT(propModel, playerPos.x + 2, playerPos.y, playerPos.z, true, true, true)
+    local prop = OBJECT.CREATE_OBJECT(propModel_roller, playerPos.x + 2, playerPos.y, playerPos.z, true, true, true)
     ENTITY.ATTACH_ENTITY_TO_ENTITY(prop, vehicle, 0, 0.0, 0.0, 0.0, 0.0, 0.0, 180.0, true, true, false, true, 1, true)
 end)
 
 last_spawn_time_bed = 0
-VEHICLE_SPAWN_DELAY_BED = 0.15
+VEHICLE_SPAWN_DELAY_BED = 0.05
+
+local vehicleModel_bed = MISC.GET_HASH_KEY("veto")
+local propModel_bed = MISC.GET_HASH_KEY("p_mbbed_s")
+STREAMING.REQUEST_MODEL(vehicleModel_bed)
+STREAMING.REQUEST_MODEL(propModel_bed)
 
 Funny_Vehicles:add_button("Bed", function()
-    current_time = os.clock()
-    if current_time - last_spawn_time_bed < VEHICLE_SPAWN_DELAY_BED then
-        return
-    end
-
+    local current_time = os.clock()
+    if current_time - last_spawn_time_bed < VEHICLE_SPAWN_DELAY_BED then return end
     last_spawn_time_bed = current_time
-    playerPed = PLAYER.PLAYER_PED_ID()
-    playerPos = ENTITY.GET_ENTITY_COORDS(playerPed, true)
-    vehicleModel = MISC.GET_HASH_KEY("veto")
-    propModel = MISC.GET_HASH_KEY("p_mbbed_s")
-    STREAMING.REQUEST_MODEL(vehicleModel)
-    STREAMING.REQUEST_MODEL(propModel)
-    if not STREAMING.HAS_MODEL_LOADED(vehicleModel) then return end
-    if not STREAMING.HAS_MODEL_LOADED(propModel) then return end
-    heading = ENTITY.GET_ENTITY_HEADING(playerPed)
-    vehicle = VEHICLE.CREATE_VEHICLE(vehicleModel, playerPos.x + 2, playerPos.y, playerPos.z, heading, true, false)
+    local playerPed = PLAYER.PLAYER_PED_ID()
+    local playerPos = ENTITY.GET_ENTITY_COORDS(playerPed, true)
+    local heading = ENTITY.GET_ENTITY_HEADING(playerPed)
+    local vehicle = VEHICLE.CREATE_VEHICLE(vehicleModel_bed, playerPos.x + 2, playerPos.y, playerPos.z, heading, true, false)
     ENTITY.SET_ENTITY_ALPHA(vehicle, 0, false)
     ENTITY.SET_ENTITY_COLLISION(vehicle, true, true)
     PED.SET_PED_INTO_VEHICLE(playerPed, vehicle, -1)
-    prop = OBJECT.CREATE_OBJECT(propModel, playerPos.x + 2, playerPos.y, playerPos.z, true, true, true)
+    local prop = OBJECT.CREATE_OBJECT(propModel_bed, playerPos.x + 2, playerPos.y, playerPos.z, true, true, true)
     ENTITY.ATTACH_ENTITY_TO_ENTITY(prop, vehicle, 0, 0.0, 0.3, -0.3, 0.0, 0.0, 180.0, true, true, false, true, 1, true)
 end)
 
 last_spawn_time_ramps_x4 = 0
-VEHICLE_SPAWN_DELAY_RAMPS_X4 = 5
+VEHICLE_SPAWN_DELAY_RAMPS_X4 = 0.05
+
+local vehicleModel_ramps = MISC.GET_HASH_KEY("sultan2")
+local rampModel_ramps = MISC.GET_HASH_KEY("prop_mp_ramp_03")
+STREAMING.REQUEST_MODEL(vehicleModel_ramps)
+STREAMING.REQUEST_MODEL(rampModel_ramps)
 
 Funny_Vehicles:add_button("Ramps x4", function()
-    current_time = os.clock()
+    local current_time = os.clock()
     if current_time - last_spawn_time_ramps_x4 < VEHICLE_SPAWN_DELAY_RAMPS_X4 then
         return
     end
 
     last_spawn_time_ramps_x4 = current_time
-    playerPed = PLAYER.PLAYER_PED_ID()
-    playerPos = ENTITY.GET_ENTITY_COORDS(playerPed, true)
-    heading = ENTITY.GET_ENTITY_HEADING(playerPed)
-    vehicleModel = MISC.GET_HASH_KEY("sultan2")
-    rampModel = MISC.GET_HASH_KEY("prop_mp_ramp_03")
-    STREAMING.REQUEST_MODEL(vehicleModel)
-    STREAMING.REQUEST_MODEL(rampModel)
-    if not STREAMING.HAS_MODEL_LOADED(vehicleModel) then return end
-    if not STREAMING.HAS_MODEL_LOADED(rampModel) then return end
-    vehicle = VEHICLE.CREATE_VEHICLE(vehicleModel, playerPos.x + 2, playerPos.y, playerPos.z, heading, true, false)
+    local playerPed = PLAYER.PLAYER_PED_ID()
+    local playerPos = ENTITY.GET_ENTITY_COORDS(playerPed, true)
+    local heading = ENTITY.GET_ENTITY_HEADING(playerPed)
+    local vehicle = VEHICLE.CREATE_VEHICLE(vehicleModel_ramps, playerPos.x + 2, playerPos.y, playerPos.z, heading, true, false)
     ENTITY.SET_ENTITY_ALPHA(vehicle, 0, false)
     ENTITY.SET_ENTITY_COLLISION(vehicle, true, true)
     PED.SET_PED_INTO_VEHICLE(playerPed, vehicle, -1)
 
-    rampOffsets = {
+    local rampOffsets = {
         {x =  0.0, y =  2.9, z = 0.0, rx = 0.0, ry = 0.0, rz = 180.0},
         {x =  0.0, y = -2.9, z = 0.0, rx = 0.0, ry = 0.0, rz = 0.0},
         {x = -4.9, y =  0.0, z = 0.0, rx = 0.0, ry = 0.0, rz = -90.0},
@@ -8927,78 +8947,77 @@ Funny_Vehicles:add_button("Ramps x4", function()
     }
 
     for _, offset in ipairs(rampOffsets) do
-        ramp = OBJECT.CREATE_OBJECT(rampModel, playerPos.x, playerPos.y, playerPos.z, true, true, true)
+        local ramp = OBJECT.CREATE_OBJECT(rampModel_ramps, playerPos.x, playerPos.y, playerPos.z, true, true, true)
         ENTITY.ATTACH_ENTITY_TO_ENTITY(ramp, vehicle, 0, offset.x, offset.y, offset.z, offset.rx, offset.ry, offset.rz, true, true, false, true, 1, true)
     end
 end)
 
 last_spawn_time_container_lift = 0
-VEHICLE_SPAWN_DELAY_CONTAINER_LIFT = 0.15
+VEHICLE_SPAWN_DELAY_CONTAINER_LIFT = 0.05
+
+local vehicleModel_lift = MISC.GET_HASH_KEY("krieger")
+local propModel_lift_1 = MISC.GET_HASH_KEY("prop_conslift_lift")
+local propModel_lift_2 = MISC.GET_HASH_KEY("prop_container_03b")
+STREAMING.REQUEST_MODEL(vehicleModel_lift)
+STREAMING.REQUEST_MODEL(propModel_lift_1)
+STREAMING.REQUEST_MODEL(propModel_lift_2)
 
 Funny_Vehicles:add_button("Container Lift", function()
-    current_time = os.clock()
+    local current_time = os.clock()
     if current_time - last_spawn_time_container_lift < VEHICLE_SPAWN_DELAY_CONTAINER_LIFT then
         return
     end
 
     last_spawn_time_container_lift = current_time
-    playerPed = PLAYER.PLAYER_PED_ID()
-    playerPos = ENTITY.GET_ENTITY_COORDS(playerPed, true)
-    heading = ENTITY.GET_ENTITY_HEADING(playerPed)
-    vehicleModel = MISC.GET_HASH_KEY("krieger")
-    propModel1 = MISC.GET_HASH_KEY("prop_conslift_lift")
-    propModel2 = MISC.GET_HASH_KEY("prop_container_03b")
-    STREAMING.REQUEST_MODEL(vehicleModel)
-    STREAMING.REQUEST_MODEL(propModel1)
-    STREAMING.REQUEST_MODEL(propModel2)
-    if not STREAMING.HAS_MODEL_LOADED(vehicleModel) then return end
-    if not STREAMING.HAS_MODEL_LOADED(propModel1) then return end
-    if not STREAMING.HAS_MODEL_LOADED(propModel2) then return end
-    vehicle = VEHICLE.CREATE_VEHICLE(vehicleModel, playerPos.x + 2, playerPos.y, playerPos.z, heading, true, false)
+    local playerPed = PLAYER.PLAYER_PED_ID()
+    local playerPos = ENTITY.GET_ENTITY_COORDS(playerPed, true)
+    local heading = ENTITY.GET_ENTITY_HEADING(playerPed)
+    local vehicle = VEHICLE.CREATE_VEHICLE(vehicleModel_lift, playerPos.x + 2, playerPos.y, playerPos.z, heading, true, false)
     ENTITY.SET_ENTITY_ALPHA(vehicle, 0, false)
     ENTITY.SET_ENTITY_COLLISION(vehicle, true, true)
     ENTITY.SET_ENTITY_VISIBLE(vehicle, true, false)
     PED.SET_PED_INTO_VEHICLE(playerPed, vehicle, -1)
-    prop1 = OBJECT.CREATE_OBJECT(propModel1, playerPos.x + 2, playerPos.y, playerPos.z, true, true, true)
+    local prop1 = OBJECT.CREATE_OBJECT(propModel_lift_1, playerPos.x + 2, playerPos.y, playerPos.z, true, true, true)
     ENTITY.ATTACH_ENTITY_TO_ENTITY(prop1, vehicle, 0, 0.0, 2.0, 2.2, 0.0, 0.0, 180.0, true, true, false, true, 1, true)
-    prop2 = OBJECT.CREATE_OBJECT(propModel2, playerPos.x + 2, playerPos.y, playerPos.z, true, true, true)
+    local prop2 = OBJECT.CREATE_OBJECT(propModel_lift_2, playerPos.x + 2, playerPos.y, playerPos.z, true, true, true)
     ENTITY.ATTACH_ENTITY_TO_ENTITY(prop2, vehicle, 0, 0.0, -0.7, -0.5, 0.0, 0.0, 0.0, true, true, false, true, 1, true)
 end)
 
 last_spawn_time_hakuchou_x6 = 0
-VEHICLE_SPAWN_DELAY_HAKUCHOU_X6 = 0.15
+VEHICLE_SPAWN_DELAY_HAKUCHOU_X6 = 0.5
+
+local vehicleModel_hakuchou_x6 = MISC.GET_HASH_KEY("hakuchou")
+STREAMING.REQUEST_MODEL(vehicleModel_hakuchou_x6)
 
 Funny_Vehicles:add_button("Hakuchou x6", function()
-    current_time = os.clock()
+    local current_time = os.clock()
     if current_time - last_spawn_time_hakuchou_x6 < VEHICLE_SPAWN_DELAY_HAKUCHOU_X6 then
         return
     end
 
     last_spawn_time_hakuchou_x6 = current_time
-    playerPed = PLAYER.PLAYER_PED_ID()
-    playerPos = ENTITY.GET_ENTITY_COORDS(playerPed, true)
-    heading = ENTITY.GET_ENTITY_HEADING(playerPed)
-    bikeModel = MISC.GET_HASH_KEY("hakuchou")
-    STREAMING.REQUEST_MODEL(bikeModel)
-    if not STREAMING.HAS_MODEL_LOADED(bikeModel) then return end
+    local playerPed = PLAYER.PLAYER_PED_ID()
+    local playerPos = ENTITY.GET_ENTITY_COORDS(playerPed, true)
+    local heading = ENTITY.GET_ENTITY_HEADING(playerPed)
+    if not STREAMING.HAS_MODEL_LOADED(vehicleModel_hakuchou_x6) then return end
 
-    spacing = 1.8
-    bikes = {}
+    local spacing = 1.8
+    local bikes = {}
 
     for i = 5, 1, -1 do
-        offsetY = spacing * i
-        bike = VEHICLE.CREATE_VEHICLE(bikeModel, playerPos.x, playerPos.y + offsetY, playerPos.z, heading, true, false)
+        local offsetY = spacing * i
+        local bike = VEHICLE.CREATE_VEHICLE(vehicleModel_hakuchou_x6, playerPos.x, playerPos.y + offsetY, playerPos.z, heading, true, false)
         ENTITY.SET_ENTITY_COLLISION(bike, true, true)
         table.insert(bikes, bike)
     end
 
-    mainBike = VEHICLE.CREATE_VEHICLE(bikeModel, playerPos.x, playerPos.y, playerPos.z, heading, true, false)
+    local mainBike = VEHICLE.CREATE_VEHICLE(vehicleModel_hakuchou_x6, playerPos.x, playerPos.y, playerPos.z, heading, true, false)
     ENTITY.SET_ENTITY_COLLISION(mainBike, true, true)
     PED.SET_PED_INTO_VEHICLE(playerPed, mainBike, -1)
     table.insert(bikes, mainBike)
 
     for i = 1, 5 do
-        offset = spacing * i
+        local offset = spacing * i
         ENTITY.ATTACH_ENTITY_TO_ENTITY(bikes[i], mainBike, 0, 0.0, offset, 0.0, 0.0, 0.0, 0.0, true, true, false, true, 1, true)
     end
 end)
